@@ -1,4 +1,4 @@
-use std::net::Ipv4Addr;
+use std::{net::Ipv4Addr, time::Instant};
 use clap::Parser;
 use tokio::net::TcpStream;
 
@@ -25,21 +25,30 @@ async fn main() {
     let mut oport = OpenPort{
         port: Vec::new(),
     };
+    let start = Instant::now();
 
-    println!("Scaning Host: {}", args.host);
-    println!("Port Range: {} - {} ", args.start_port, args.end_port);
+    println!("Scaning Host: {} Port Range: {}-{}", args.host, args.start_port, args.end_port);
 
     for port in args.start_port..args.end_port + 1{
        match TcpStream::connect(format!("{}:{}", args.host, port)).await{
             Ok(_stream) => {
+
                 oport.port.push(port);
             }Err(_e) => {
             }
         }
     }
 
+
+    let duration = start.elapsed();
+    let min = duration.as_secs() / 60;
+    let sec = duration.as_secs() % 60;
+    let milisec = duration.as_millis();
+    let formatdur = format!("{}:{}.{}", min, sec, milisec);
+    
     for i in &oport.port {
         println!("Open Port: {}", i);
     }
+    println!("The scan took {:?}", formatdur)
   
 }
