@@ -1,9 +1,9 @@
-use std::{net::Ipv4Addr, time::Instant, error::Error};
+use std::{net::Ipv4Addr, time::Instant};
+use ssh2::Session;
 use clap::Parser;
 use reqwest::Client;
-use tokio::net::TcpStream;
-
-
+use tokio::{net::TcpStream, task};
+use anyhow::Result;
 
 #[derive(Parser, Debug)]
 #[clap(author="CyberNex", version , about="A simple portscanner and hopefully soon a nmap clone written in Rust")]
@@ -22,7 +22,7 @@ struct OpenPort{
     port_info: Vec<(u16, Option<String>)>,
 }
 
-async fn web_request(host: Ipv4Addr, port: u16) -> Result<String, Box<dyn Error>>{
+async fn web_request(host: Ipv4Addr, port: u16) -> Result<String>{
     let client = Client::builder()
         .danger_accept_invalid_certs(true)
         .build()?;
@@ -39,6 +39,24 @@ async fn web_request(host: Ipv4Addr, port: u16) -> Result<String, Box<dyn Error>
     let res = client.get(url).send().await?;
     let body = res.text().await?;
     Ok(body)
+}
+
+async fn ssh_info(host: Ipv4Addr, port: u16) ->Result<String>{
+    let ssh_version = task::spawn_blocking(move || -> Result<String>{
+        let tcp = std::net::TcpStream::connect(format!("{}:{}", host, port))?;
+        let mut session = Session::new()?;
+        session.set_tcp_stream(tcp);
+        session.handshake()?;
+        
+        let ssh_version = session
+            .banner()
+            .ok_or_else(||anyhow::anyhow!("No banner returned"))?;
+
+        Ok(ssh_version.to_string())
+    })
+    .await??;
+
+    Ok(ssh_version)
 }
 
 
@@ -58,7 +76,9 @@ async fn main() {
                let banner = if port == 80 || port == 443{
                     web_request(args.host, port).await.ok()                  
                 }
-                //else if port == 22{}
+                else if port == 22{
+                    ssh_info(args.host, port).await.ok()
+                }
                 else {
                     None
                 };
