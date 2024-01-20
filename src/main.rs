@@ -71,7 +71,7 @@ async fn main() {
     println!("Scaning Host: {} Port Range: {}-{}", args.host, args.start_port, args.end_port);
     println!("Scaning Host: {}", args.host);
     println!("Port Range: {} - {} ", args.start_port, args.end_port);
-    for port in args.start_port..args.end_port + 1{
+    for port in args.start_port..=args.end_port {
        match TcpStream::connect(format!("{}:{}", args.host, port)).await{
             Ok(_stream) => {
                let banner = if port == 80 || port == 443{
