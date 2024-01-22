@@ -81,7 +81,7 @@ async fn scan_port_chunk(host: Ipv4Addr, ports: Vec<u16>, banner:bool) ->Vec <(u
     results
 }
 
-#[tokio::main(flavor ="multi_thread", worker_threads = 5)]
+#[tokio::main(flavor ="multi_thread", worker_threads = 12)]
 async fn main() {
     let args = Args::parse();
     let start = Instant::now();
@@ -90,7 +90,7 @@ async fn main() {
     let eport = args.end_port;
     let check_banner = args.service_check;
     let total_ports : Vec<_> = (sport..=eport).collect();
-    let chunk_size = total_ports.len() /5;
+    let chunk_size = total_ports.len() / 5;
 
     println!("Scaning Host: {} Port Range: {}-{}", host, sport, eport);
     let mut tasks = Vec::new();
