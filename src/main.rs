@@ -8,16 +8,20 @@ use anyhow::Result;
 #[derive(Parser, Debug)]
 #[clap(author="CyberNex", version , about="A simple portscanner and hopefully soon a nmap clone written in Rust")]
 struct Args{
-    ///User supplied IPv4 address of the host they would like to scan
+    ///User supplied IPv4 address of the host they would like to scan.
     host: Ipv4Addr,
     #[clap(default_value_t = 1)]
-    ///The port number to start the scan on if left blank will default to 1
+    ///The port number to start the scan on if left blank will default to 1.
     start_port: u16,
     #[clap(default_value_t = 1000)]
-    ///The port number to end the scan on. If left blank will default to 1000
+    ///The port number to end the scan on. If left blank will default to 1000.
     end_port: u16,
+    ///Grab banners from services that are running.
     #[clap(short = 's', long = "service-check")]
     service_check: bool,
+    ///Set the number of threads that are used for the scan.
+    #[clap(short = 't', value_name="INT", default_value_t = 5)]
+    thread_count: i32,
 }
 
 struct OpenPort{
@@ -81,7 +85,7 @@ async fn scan_port_chunk(host: Ipv4Addr, ports: Vec<u16>, banner:bool) ->Vec <(u
     results
 }
 
-#[tokio::main(flavor ="multi_thread", worker_threads = 12)]
+#[tokio::main(flavor ="multi_thread")]
 async fn main() {
     let args = Args::parse();
     let start = Instant::now();
@@ -89,8 +93,13 @@ async fn main() {
     let sport = args.start_port;
     let eport = args.end_port;
     let check_banner = args.service_check;
+    let threads = args.thread_count.max(1) as usize;
     let total_ports : Vec<_> = (sport..=eport).collect();
-    let chunk_size = total_ports.len() / 5;
+    let chunk_size = if threads < total_ports.len(){
+        total_ports.len() / threads
+    }else{
+        1
+    };   
 
     println!("Scaning Host: {} Port Range: {}-{}", host, sport, eport);
     let mut tasks = Vec::new();
